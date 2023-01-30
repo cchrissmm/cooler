@@ -1,11 +1,11 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-const int WETPIN = 26;
-const int FANPIN = 27;
-const int DUMPPIN = 27;
-const int HIGHLEVELPIN = 27;
-const int LOWLEVELPIN = 27;
+const int WETPIN = 25;
+const int FANPIN = 22;
+const int DUMPPIN = 33;
+const int HIGHLEVELPIN = 14;
+const int LOWLEVELPIN = 12;
 
 const int PWM_FREQ = 5000;
 const int PWM_RES = 12;

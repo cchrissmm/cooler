@@ -22,6 +22,7 @@ private:
     int fanSpeed = 255;                             // speed of the fan
     int WET_CYCLE_TIME = 30;               // duration of the wet cycle in ms before the fans start in seconds
     int POSTRUN_FAN_TIME = 30;             // duration of the fan run after the cooler has been turned off
+    const int LEVELPIN_THRESHOLD = 3;  //threshold for capacitence level detection
     int wetTimer;                             // timer for the wet cycle
     
                            
