@@ -1,0 +1,106 @@
+#include <cooler.h>
+#include <Arduino.h>
+#include <CAN.h>
+#include <Timer.h>
+
+Timer tDumpCycle;
+
+cooler::cooler(int wetPin, int fanPin, int dumpPin, int fillSensPin)
+{
+    this->wetPin = wetPin;
+    this->fanPin = fanPin;
+    this->dumpPin = dumpPin;
+    this->fillSensPin = fillSensPin;
+}
+
+void cooler::task1000ms()
+{ // where the timers run from
+    cooler::levelCheck(); //monitor the level of the water
+    cooler::dumpCheck();  // check if the water needs to be dumped     
+}
+
+void coolOn() {
+    coolRequest = 1;
+}
+
+void coolOff() {
+    coolRequest = 0;
+}
+
+
+void cooler::fanOn(int fanSpeed)
+{                                   // turns on the fan
+    analogWrite(fanPin, fanSpeed); // start the fan
+    Serial.println("fan on at: " + String(fanSpeed));
+}
+
+void cooler::fanOff()
+{                            // turns off the fan
+    analogWrite(fanPin, 0); // stop the fan
+    Serial.println("fan off");
+}
+
+int cooler::coolCheck ()
+{
+    if(coolRequest) {
+        if(cooler::dumpCheck) {
+    if(cooler::fillCheck) {
+
+}
+
+int cooler::fillCheck()
+{
+    if ((digitalRead(fillSensPin) == 0) && coolerRunning) // if the fill sensor is low and the cooler is running
+    {
+        CAN.beginPacket(0x20, 2);
+        CAN.write(1);
+        CAN.write(0);
+        CAN.endPacket();
+        return 0; //level low
+    }
+    else
+    {
+        CAN.beginPacket(0x20, 2);
+        CAN.write(0);
+        CAN.write(1);
+        CAN.endPacket();
+        return 1; //level ok
+    }
+}
+
+int cooler::dumpCheck()
+{ // dump the water
+if(dumpRequest)
+{
+        analogWrite(dumpPin, 255); // start the dump pump
+        tDumpCycle.start();        // start the timer
+        if(tDumpCycle.hasPassed(DUMP_CYCLE_TIME))
+        {
+            analogWrite(dumpPin, 0);   // stop the dump pump
+            tDumpCycle.stop();         // stop the timer
+            dumpRequest = 0;         // reset the flag
+            return 1;
+        }
+        return 1;
+}
+    analogWrite(dumpPin, 0);   // stop the dump pump
+    return 0;
+}
+
+int cooler::wetCheck()
+{
+    if (wetRequested)
+    {
+        analogWrite(wetPin, 255); // start the wet pump
+        tWetCycle.start();        // start the timer
+        if (tWetCycle.hasPassed(WET_CYCLE_TIME))
+        {
+            analogWrite(wetPin, 0);   // stop the wet pump
+            tWetCycle.stop();         // stop the timer
+            wetRequested = 0;         // reset the flag
+        }
+        return 1;
+    }
+    analogWrite(wetPin, 0);   // stop the wet pump
+    return 0;
+}

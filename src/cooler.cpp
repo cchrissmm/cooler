@@ -5,89 +5,149 @@
 
 Timer tDumpCycle;
 
-cooler::cooler(int wetPin, int fanPin, int dumpPin, int fillSensPin)
+cooler::cooler(int wetPin, int fanPin, int dumpPin, int highLevelPin, int lowLevelPin)
 {
     this->wetPin = wetPin;
     this->fanPin = fanPin;
     this->dumpPin = dumpPin;
-    this->fillSensPin = fillSensPin;
+    this->highLevelPin = highLevelPin;
+    this ->lowLevelPin = lowLevelPin;
 }
 
-void cooler::task1000ms()
-{ // where the timers run from
-    cooler::levelCheck(); //monitor the level of the water
-    cooler::dumpCheck();  // check if the water needs to be dumped
-}
-
-void cooler::coolOn()
-{                              // turns on the cool function
-    coolerRunning = 1;         // set the run flag
-    cooler::fanOn(255);         // start the fan
-    analogWrite(wetPin, 255); // start the wet pump
-    status = "cooling on";
-}
-
-void cooler::coolOff()
-{                      // turns off the cool function
-    coolerRunning = 0; // reset the run flag
-    cooler::dump();     // dump the water
-    dumpRequested = 1;  // set the dump flag
-}
-
-void cooler::fanOn(int fanSpeed)
-{                                   // turns on the fan
-    analogWrite(fanPin, fanSpeed); // start the fan
-}
-
-void cooler::fanOff()
-{                            // turns off the fan
-    analogWrite(fanPin, 0); // stop the fan
-}
-
-void cooler::levelCheck()
+enum class State
 {
-    if ((digitalRead(fillSensPin) == 0) && coolerRunning) // if the fill sensor is low and the cooler is running
-    { 
-        // send can message to the fill pump run
-    }
-    else
-    {
-        // send can message to the fill pump to stop
-    }
-}
+    idle, //doing nothing
+    vanOn, //turning on van causes a dump cycle
+    startUp, //starting up cooler. dump() then fill(), then run().
+    runCool, //running in cool mode. run() with fill() whenever required
+    runFanOnly, //running in fan only mode
+    shutDown, //shutting down from cool mode. wetOff(), dump(), fanOff() 
+};
 
-void cooler::dumpCheck()
-{ // dump the water
-if(dumpRequested)
-{
-        analogWrite(dumpPin, 255); // start the dump pump
-        tDumpCycle.start();        // start the timer
-        if(tDumpCycle.hasPassed(DUMP_CYCLE_TIME))
-        {
-            analogWrite(dumpPin, 0);   // stop the dump pump
-            tDumpCycle.stop();         // stop the timer
-            dumpRequested = 0;         // reset the flag
+State current_state = State::vanOn; //default state is van on, such that a dump triggers when van is turned on
+
+void cooler::task1000ms() {
+//the state machine will be here running in loop
+
+switch(current_state) {
+    case State::idle: // system idle
+        cooler::fanOff();
+        cooler::wetOff();
+        cooler::dumpOff();
+        cooler::fillOff();
+        break;
+
+    case State::vanOn: // van on
+        if(cooler::dumpOn()) { // if dump cycle is complete
+            current_state = State::idle;
         }
-}
-    analogWrite(dumpPin, 0);   // stop the dump pump
-}
+        break;
 
-void cooler::wetCheck()
-{
-    if (wetRequested)
-    {
-        analogWrite(wetPin, 255); // start the wet pump
-        tWetCycle.start();        // start the timer
-        if (tWetCycle.hasPassed(WET_CYCLE_TIME))
-        {
-            analogWrite(wetPin, 0);   // stop the wet pump
-            tWetCycle.stop();         // stop the timer
-            wetRequested = 0;         // reset the flag
+    case State::startUp: // start up cooler
+
+        if(cooler::dumpOn()){  
+            if(cooler::fillOn) {
+                if(cooler::wetOn()) {
+                    if (wetTimer > WET_CYCLE_TIME) {
+                        cooler::fanOn(255);
+                    }
+                    current_state = State::runCool;
+                }
+            }
         }
-    }
-    analogWrite(wetPin, 0);   // stop the wet pump
+        break;
+
+    case State::runCool: // run cooler in cool mode
+        cooler::wetOn();
+        cooler::fanOn(255);
+        cooler::fillOn;
+        current_state = State::runCool;
+        break;
+
+    case State::runFanOnly:
+        //run cooler in fan only mode
+        break;
+
+    case State::shutDown: // shut down cooler
+        cooler::fillOff();
+        cooler::wetOff();
+        if(cooler::dumpOn()) {
+            cooler::fanOff();
+            current_state = State::idle;
+        }
+        
+        break;
+
+    default:
+        //do nothing
+        break;
 }
 
-String cooler::getStatus() {
-    return status;
+}
+
+int cooler::wetOn() {
+    digitalWrite(wetPin, HIGH);
+    wetTimer += 1;
+    return 1;
+}
+
+int cooler::wetOff() {
+    digitalWrite(wetPin, LOW);
+    wetTimer = 0;
+    return 1;
+}
+
+int cooler::fanOn(int speed) {
+    analogWrite(fanPin, speed);
+    return 1;
+}
+
+int cooler::fanOff() {
+    analogWrite(fanPin, 0);
+    return 1;
+}
+
+int cooler::dumpOn() {      
+    if(digitalRead(lowLevelPin) == 1) {
+    digitalWrite(dumpPin, HIGH);
+    return 0;
+    }
+    else {
+        return 1;
+    }
+    return 0;
+}
+
+int cooler::dumpOff() {
+    digitalWrite(dumpPin, LOW);
+    return 1;
+}
+
+int cooler::fillOn() {
+    if(digitalRead(highLevelPin) == 0) {
+    //can message to start fill pump
+        CAN.beginPacket(0x20, 2);
+        CAN.write(1);
+        CAN.write(0);
+        CAN.endPacket();
+        return 0;
+    }
+    else {
+        // can message to stop fill pump
+        CAN.beginPacket(0x20, 2);
+        CAN.write(0);
+        CAN.write(1);
+        CAN.endPacket();
+        return 1;
+    }
+    return 0;
+}
+
+int cooler::fillOff() {
+    //  can message to stop fill pump
+    CAN.beginPacket(0x20, 2);
+    CAN.write(0);
+    CAN.write(1);
+    CAN.endPacket();
+    return 1;
 }

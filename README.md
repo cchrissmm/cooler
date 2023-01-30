@@ -30,3 +30,21 @@ wait x min
 ### Long term dump
 if wet running for >x then trigger a dump
 
+## API
+
+call coolOn() to start cooling
+call coolOff() to stop cooling
+call fanOn() to start fan
+call fanOff() to stop fan
+
+## Design
+The system is built as two state machines.
+
+A mode state machine which dictates the operating mode of the system.
+Cooling, fan, idle.
+
+And a State state machine which dictates which state the system is in. Such as filling, dumping, wetting, etc.
+
+
+
+
