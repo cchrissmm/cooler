@@ -57,7 +57,7 @@ void cooler::task1000ms() {
 switch(current_mode) {
     case Mode::cool:
         current_state = State::startUp; //start up cooler
-        Serial.print("Current cooler mode is cool");
+        Serial.println("Current cooler mode is cool");
         break;
 
     case Mode::fanOnly:
@@ -70,7 +70,7 @@ switch(current_mode) {
         else {
             current_state = State::runFanOnly; //run cooler in fan only mode
         }
-        Serial.print("Current cooler mode is fanOnly");
+        Serial.println("Current cooler mode is fanOnly");
         break;
 
     case Mode::off:
@@ -86,7 +86,7 @@ switch(current_mode) {
         {
             current_state = State::idle; // then idle
         }
-        Serial.print("Current cooler mode is off");
+        Serial.println("Current cooler mode is off");
         break;
 
     default:
@@ -97,7 +97,7 @@ switch(current_mode) {
 //the state machine will be here running in loop
 switch(current_state) {
     case State::idle: // system idle
-        Serial.print("Current cooler state is idle");
+        Serial.println("Current cooler state is idle");
         cooler::fanOff();
         cooler::wetOff();
         cooler::dumpOff();
@@ -105,14 +105,14 @@ switch(current_state) {
         break;
 
     case State::vanOn: // van on
-        Serial.print("Current cooler state is vanOn");
+        Serial.println("Current cooler state is vanOn");
         if(cooler::dumpOn()) { // if dump cycle is complete
             current_state = State::idle;
         }
         break;
 
     case State::startUp: // start up cooler
-        Serial.print("Current cooler state is startUp");
+        Serial.println("Current cooler state is startUp");
         if(cooler::dumpOn()){  
             if(cooler::fillOn()) {
                 if(cooler::wetOn()) {
@@ -126,7 +126,7 @@ switch(current_state) {
         break;
 
     case State::runCool: // run cooler in cool mode
-        Serial.print("Current cooler state is runCool");
+        Serial.println("Current cooler state is runCool");
         cooler::wetOn();
         cooler::fanOn();
         cooler::fillOn();
@@ -135,7 +135,7 @@ switch(current_state) {
 
     case State::runFanOnly:
         //run cooler in fan only mode
-        Serial.print("Current cooler state is runFanOnly");
+        Serial.println("Current cooler state is runFanOnly");
         cooler::wetOff();
         cooler::fanOn();
         cooler::fillOff();
@@ -143,7 +143,7 @@ switch(current_state) {
         break;
 
     case State::shutDown: // shut down cooler
-        Serial.print("Current cooler state is shutDown");
+        Serial.println("Current cooler state is shutDown");
         cooler::fillOff();
         cooler::wetOff();
         if(cooler::dumpOn()) {
@@ -203,18 +203,18 @@ int cooler::dumpOff() {
 int cooler::fillOn() {
     if(digitalRead(highLevelPin) == 0) {
     //can message to start fill pump
-        CAN.beginPacket(0x20, 2);
-        CAN.write(1);
-        CAN.write(0);
-        CAN.endPacket();
+        // CAN.beginPacket(0x20, 2);
+        // CAN.write(1);
+        // CAN.write(0);
+        // CAN.endPacket();
         return 0;
     }
     else {
         // can message to stop fill pump
-        CAN.beginPacket(0x20, 2);
-        CAN.write(0);
-        CAN.write(1);
-        CAN.endPacket();
+        // CAN.beginPacket(0x20, 2);
+        // CAN.write(0);
+        // CAN.write(1);
+        // CAN.endPacket();
         return 1;
     }
     return 0;
@@ -222,9 +222,9 @@ int cooler::fillOn() {
 
 int cooler::fillOff() {
     //  can message to stop fill pump
-    CAN.beginPacket(0x20, 2);
-    CAN.write(0);
-    CAN.write(1);
-    CAN.endPacket();
+    // CAN.beginPacket(0x20, 2);
+    // CAN.write(0);
+    // CAN.write(1);
+    // CAN.endPacket();
     return 1;
 }

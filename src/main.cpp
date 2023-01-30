@@ -5,6 +5,7 @@
 #include <cooler.h>
 
 SimpleTimer Task_1000ms(1000);
+
 cooler cooler01(WETPIN, FANPIN, DUMPPIN, HIGHLEVELPIN, LOWLEVELPIN);
 
 void setup() {
@@ -37,6 +38,7 @@ void loop() {
     Task_1000ms.reset();
     serialRX();
     cooler01.task1000ms();
+    Serial.println("1000ms task done");
   }
 }
 
