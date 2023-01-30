@@ -24,13 +24,80 @@ enum class State
     shutDown, //shutting down from cool mode. wetOff(), dump(), fanOff() 
 };
 
+enum class Mode
+{
+    cool, //cool mode
+    fanOnly, //fan only mode
+    off, //off mode
+};
+
 State current_state = State::vanOn; //default state is van on, such that a dump triggers when van is turned on
+Mode current_mode = Mode::off; //default mode is off
 
+///***PUBLIC FUNCTIONS*********************************************************///
+
+void cooler::runCooler()
+{
+    current_mode = Mode::cool;
+}
+
+void cooler::setFanSpeed(int fanSpeed)
+{
+    this->fanSpeed = fanSpeed;
+    current_mode = Mode::fanOnly;
+}
+
+void cooler::stopCooler()
+{
+    current_mode = Mode::off;
+}
+
+///***TICKER AND STATE MACHINES*********************************************************///
 void cooler::task1000ms() {
-//the state machine will be here running in loop
+switch(current_mode) {
+    case Mode::cool:
+        current_state = State::startUp; //start up cooler
+        Serial.print("Current cooler mode is cool");
+        break;
 
+    case Mode::fanOnly:
+        if(current_state == State::runCool) {
+            current_state = State::shutDown; //shut down cooler
+        }
+        if(current_state == State::shutDown) {
+            //do nothing and wait
+        }
+        else {
+            current_state = State::runFanOnly; //run cooler in fan only mode
+        }
+        Serial.print("Current cooler mode is fanOnly");
+        break;
+
+    case Mode::off:
+        if (current_state == State::runCool)
+        {
+            current_state = State::shutDown; // shut down cooler
+        }
+        if (current_state == State::shutDown)
+        {
+            // wait for it to shut down
+        }
+        else
+        {
+            current_state = State::idle; // then idle
+        }
+        Serial.print("Current cooler mode is off");
+        break;
+
+    default:
+        //do nothing
+        break;
+}
+
+//the state machine will be here running in loop
 switch(current_state) {
     case State::idle: // system idle
+        Serial.print("Current cooler state is idle");
         cooler::fanOff();
         cooler::wetOff();
         cooler::dumpOff();
@@ -38,18 +105,19 @@ switch(current_state) {
         break;
 
     case State::vanOn: // van on
+        Serial.print("Current cooler state is vanOn");
         if(cooler::dumpOn()) { // if dump cycle is complete
             current_state = State::idle;
         }
         break;
 
     case State::startUp: // start up cooler
-
+        Serial.print("Current cooler state is startUp");
         if(cooler::dumpOn()){  
-            if(cooler::fillOn) {
+            if(cooler::fillOn()) {
                 if(cooler::wetOn()) {
                     if (wetTimer > WET_CYCLE_TIME) {
-                        cooler::fanOn(255);
+                        cooler::fanOn();
                     }
                     current_state = State::runCool;
                 }
@@ -58,17 +126,24 @@ switch(current_state) {
         break;
 
     case State::runCool: // run cooler in cool mode
+        Serial.print("Current cooler state is runCool");
         cooler::wetOn();
-        cooler::fanOn(255);
-        cooler::fillOn;
+        cooler::fanOn();
+        cooler::fillOn();
         current_state = State::runCool;
         break;
 
     case State::runFanOnly:
         //run cooler in fan only mode
+        Serial.print("Current cooler state is runFanOnly");
+        cooler::wetOff();
+        cooler::fanOn();
+        cooler::fillOff();
+        cooler::dumpOff();
         break;
 
     case State::shutDown: // shut down cooler
+        Serial.print("Current cooler state is shutDown");
         cooler::fillOff();
         cooler::wetOff();
         if(cooler::dumpOn()) {
@@ -85,6 +160,8 @@ switch(current_state) {
 
 }
 
+//***COOLER SUBROUTINES*********************************************************///
+
 int cooler::wetOn() {
     digitalWrite(wetPin, HIGH);
     wetTimer += 1;
@@ -97,8 +174,8 @@ int cooler::wetOff() {
     return 1;
 }
 
-int cooler::fanOn(int speed) {
-    analogWrite(fanPin, speed);
+int cooler::fanOn() {
+    analogWrite(fanPin, fanSpeed);
     return 1;
 }
 
