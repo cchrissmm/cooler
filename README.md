@@ -8,10 +8,11 @@
 * fans
 
 ## Functional Flow
-### Startup
+### System Startup
 * check level and dump if required
 
 ### Cooling requested by user
+* dump if required
 * check level and fill if required
   then
 * start wet pump and wait xmin
@@ -20,9 +21,9 @@
 
 ### Off requested by user
 * stop wet pump
+* dump water
 wait x min
 * stop fan
-* dump water
 
 ### Fan requested by user
 * start fan
@@ -35,21 +36,16 @@ if wet running for >x then trigger a dump
 ### Methods
 runCooler() to start cooling
 
-coolOff() to stop cooling and fan (whatever is on)
+stopCOoler() to stop cooling and fan (whatever is on)
 
 setFanSpeed(int fanSpeed) to set fan speed (0-255) / turn the fan on. default is 255
 
 
 
 ## Design
-The system is built as two state machines.
+The system is built as state machine which dictates which state the system is in. Such as filling, dumping, wetting, etc.
 
-A mode state machine which dictates the operating mode of the system.
-Cooling, fan, idle.
-
-And a State state machine which dictates which state the system is in. Such as filling, dumping, wetting, etc.
-
-Based on the mode the various states are entered and exited.
+Based on the state the various system functions are started and stopped
 
 
 
