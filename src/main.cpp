@@ -28,7 +28,7 @@ void setup() {
   ledcSetup(1, PWM_FREQ, PWM_RES);
   ledcAttachPin(DUMPPIN, 2);
   ledcSetup(2, PWM_FREQ, PWM_RES);
-  
+
   pinMode(HIGHLEVELPIN, INPUT); // may need pullup
   pinMode(LOWLEVELPIN, INPUT); // may need pullup
 
@@ -41,6 +41,8 @@ void loop() {
     Task_1000ms.reset();
     serialRX();
     cooler01.task1000ms();
+   // float temp = ((analogReadMilliVolts(TEMPPIN)- TEMPOFFSET) * TEMPGAIN);
+    //Serial.println("temp is: " + String(temp));
     Serial.println("1000ms task done");
   }
 }

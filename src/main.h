@@ -6,6 +6,9 @@ const int FANPIN = 22;
 const int DUMPPIN = 33;
 const int HIGHLEVELPIN = 14;
 const int LOWLEVELPIN = 12;
+const int TEMPPIN = 5;
+const int TEMPGAIN = 19.5;
+const int TEMPOFFSET = 400;
 
 const int PWM_FREQ = 5000;
 const int PWM_RES = 12;
