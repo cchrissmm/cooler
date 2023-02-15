@@ -24,8 +24,11 @@ void setup() {
   
   ledcAttachPin(FANPIN, 0);
   ledcSetup(0, PWM_FREQ, PWM_RES);
-  pinMode(WETPIN, OUTPUT);
-  pinMode(DUMPPIN, OUTPUT);
+  ledcAttachPin(WETPIN, 1);
+  ledcSetup(1, PWM_FREQ, PWM_RES);
+  ledcAttachPin(DUMPPIN, 2);
+  ledcSetup(2, PWM_FREQ, PWM_RES);
+  
   pinMode(HIGHLEVELPIN, INPUT); // may need pullup
   pinMode(LOWLEVELPIN, INPUT); // may need pullup
 

@@ -34,6 +34,8 @@ void cooler::runCooler()
     //current_mode = Mode::cool;
     current_state = State::startUp; // start up cooler
     Serial.println("Current cooler mode is cool");
+    Serial.println("low level pin is: " + String(touchRead(lowLevelPin)));
+    Serial.println("high level pin is: " + String(touchRead(highLevelPin)));
 }
 
 void cooler::setFanSpeed(int fanSpeed)
@@ -68,6 +70,9 @@ void cooler::stopCooler()
 ///***TICKER AND STATE MACHINES*********************************************************///
 void cooler::task1000ms()
 {
+    Serial.println("low level pin is: " + String(touchRead(lowLevelPin)));
+    Serial.println("high level pin is: " + String(touchRead(highLevelPin)));
+    
     // the state machine will be here running in loop
     switch (current_state)
     {
@@ -89,8 +94,9 @@ void cooler::task1000ms()
 
     case State::startUp: // start up cooler
         Serial.println("Current cooler state is startUp");
-        Serial.println("request dump cycle...");
-        if (cooler::dumpOn() || StartupDumpDone) // if dump cycle is complete or already done
+        Serial.println("dump pump done state is: " + String(StartupDumpDone));
+
+        if (cooler::dumpOn()) // if dump cycle is complete or already done
         {
             StartupDumpDone = 1;
             Serial.println("dump done, request fill cycle...");
@@ -160,14 +166,14 @@ void cooler::task1000ms()
 int cooler::wetOn()
 {
     Serial.println("wet pump on");
-    digitalWrite(wetPin, HIGH);
+    analogWrite(wetPin, 255);
     return 1;
 }
 
 int cooler::wetOff()
 {
     Serial.println("wet pump off");
-    digitalWrite(wetPin, LOW);
+    analogWrite(wetPin, 0);
     return 1;
 }
 
@@ -187,15 +193,15 @@ int cooler::fanOff()
 
 int cooler::dumpOn()
 {
-    if (touchRead(lowLevelPin) < LEVELPIN_THRESHOLD)
+    if (touchRead(lowLevelPin) < LEVELPIN_THRESHOLD && StartupDumpDone == 0)
     {
-        digitalWrite(dumpPin, HIGH);
+        analogWrite(dumpPin, 255);
         Serial.println("dump pump triggered at " + String(touchRead(lowLevelPin)));
         return 0;
     }
     else
     {
-        digitalWrite(dumpPin, LOW);
+        analogWrite(dumpPin, 0);
         Serial.println("dump pump idle at " + String(touchRead(lowLevelPin)));
         return 1;
     }
@@ -205,7 +211,8 @@ int cooler::dumpOn()
 int cooler::dumpOff()
 {
     Serial.println("dump pump off");
-    digitalWrite(dumpPin, LOW);
+    analogWrite(dumpPin, 0);
+    StartupDumpDone = 0;
     return 1;
 }
 
@@ -213,7 +220,7 @@ int cooler::fillOn()
 {
     if (touchRead(highLevelPin) > LEVELPIN_THRESHOLD)
     {
-        Serial.println("level low, fill pump running at " + String(touchRead(highLevelPin)));
+        Serial.println("fill level low, fill pump running at " + String(touchRead(highLevelPin)));
         //  CAN.beginPacket(0x20, 2);
         //  CAN.write(1);
         //  CAN.write(0);
@@ -222,7 +229,7 @@ int cooler::fillOn()
     }
     else
     {
-        Serial.println("level ok, fill pump idle at " + String(touchRead(highLevelPin)));
+        Serial.println("fill level ok, fill pump idle at " + String(touchRead(highLevelPin)));
         // CAN.beginPacket(0x20, 2);
         // CAN.write(0);
         // CAN.write(1);
